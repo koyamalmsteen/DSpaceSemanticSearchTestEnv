@@ -1,0 +1,154 @@
+<project name="DSpace Semantic Search" default="all" basedir=".">
+  <property file="build.properties"/>
+  <property environment="env"/>
+  <property name="hostname" value="${env.HOSTNAME}"/>
+
+  <target name="proxy">
+    <setproxy proxyhost="${proxy.host}" proxyport="${proxy.port}" />
+  </target>
+
+  <target name="all" depends="clean, init, maven, download, install, semantic-search"/>
+  <target name="all_proxy" depends="clean, init, maven_proxy, download"/>
+
+  <target name="clean">
+    <delete dir="${dspace_prefix}"/>
+    <delete file="${dspace_prefix}.tar"/>
+    <delete file="${dspace_prefix}.tar.bz2"/>
+    <delete file="${patch_prefix}.patch"/>
+    <delete file="${maven_prefix}.zip"/>
+    <delete dir="/opt/${dspace_prefix}"/>
+    <delete file="/opt/dspace"/>
+    <delete dir="/opt/${maven_prefix}"/>
+    <delete file="/opt/maven"/>
+  </target>
+
+  <target name="init">
+    <exec executable="setenforce">
+      <arg line="0"/>
+    </exec>
+    <exec executable="useradd">
+      <arg line="dspace"/>
+    </exec>
+    <echo file="/etc/profile" message="#&#x0A;" append="yes"/>
+    <echo file="/etc/profile" message="export MAVEN_HOME=/opt/maven&#x0A;" append="yes"/>
+    <echo file="/etc/profile" message="export TOMCAT_USER=dspace&#x0A;" append="yes"/>
+    <echo file="/etc/profile" message="export JAVA_OPTS='-Xmx512M -Dfile.encoding=UTF-8'&#x0A;" append="yes"/>
+    <echo file="/etc/profile" message="export PGLIB=/usr/lib/pgsql&#x0A;" append="yes"/>
+    <echo file="/etc/profile" message="export PGDATA=/var/lib/pgsql/data&#x0A;" append="yes"/>
+    <echo file="/etc/profile" message="export PATH=${PATH}:${MAVEN_HOME}/bin&#x0A;" append="yes"/>
+    <echo file="/etc/profile" message="export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$PGLIB&#x0A;" append="yes"/>
+    <exec executable="yum">
+      <arg line="-y install tomcat6 readline-devel zlib-devel gcc postgresql-server postgresql-jdbc ant-apache-regexp"/>
+    </exec>
+    <exec executable="sudo">
+      <arg line="-i -u postgres initdb --no-locale --encoding=UTF-8"/>
+    </exec>
+    <echo file="/var/lib/pgsql/data/postgresql.conf" message="log_destination='syslog'&#x0A;" append="yes"/>
+    <echo file="/var/lib/pgsql/data/pg_hba.conf" message="host dspace dspace 127.0.0.1/32 md5&#x0A;" append="yes"/>
+    <exec executable="/etc/init.d/postgresql">
+      <arg line="start"/>
+    </exec>
+    <exec executable="sudo">
+      <arg line="-u postgres createuser dspace --no-superuser --createdb --no-createrole --no-password"/>
+    </exec>
+  </target>
+
+  <target name="maven"> 
+    <get src="http://ftp.jaist.ac.jp/pub/apache/maven/binaries/${maven_prefix}.zip" dest="./${maven_prefix}.zip"/>
+    <unzip src="${maven_prefix}.zip" dest="/opt"/>
+    <exec executable="ln">
+      <arg line="-s /opt/apache-maven-${maven_version} /opt/maven"/>
+    </exec>
+    <exec executable="chmod">
+      <arg line="+x /opt/maven/bin/mvn"/>
+    </exec>
+  </target>
+
+  <target name="maven_proxy"> 
+    <get src="http://ftp.jaist.ac.jp/pub/apache/maven/binaries/${maven_prefix}.zip" dest="./${maven_prefix}.zip"/>
+    <unzip src="${maven_prefix}.zip" dest="/opt"/>
+    <exec executable="ln">
+      <arg line="-s /opt/apache-maven-${maven_version} /opt/maven"/>
+    </exec>
+    <exec executable="chmod">
+      <arg line="+x /opt/maven/bin/mvn"/>
+    </exec>
+    <replace file="/opt/maven/conf/settings.xml" token="&lt;/proxies&gt;" value="  
+ &lt;proxy&gt;&#x0A;      &lt;host&gt;${proxy.host}&lt;/host&gt;&#x0A;      &lt;port&gt;${proxy.port}&lt;/port&gt;&#x0A;    &lt;/proxy&gt;&#x0A;  &lt;/proxies&gt;" />
+  </target>
+
+<!--
+  <target name="download" depends="proxy">
+-->
+  <target name="download">
+    <get src="http://ftp.jaist.ac.jp/pub/sourceforge/d/ds/dspace/DSpace%20Stable/${dspace_version}/${dspace_prefix}.tar.bz2" dest="./${dspace_prefix}.tar.bz2"/>
+    <bunzip2 src="${dspace_prefix}.tar.bz2"/>
+    <untar src="${dspace_prefix}.tar" dest="."/>
+    <get src="http://dspace-semantic-search.googlecode.com/files/${patch_prefix}.patch" dest="./${patch_prefix}.patch"/>
+    <patch patchfile="${patch_prefix}.patch" dir="./${dspace_prefix}" strip="0"/>
+    
+    <replace file="${dspace_prefix}/pom.xml" token="&lt;finalName&gt;dspace-${project.version}&lt;/finalName&gt;" value="&lt;finalName&gt;dspace-${project.version}&lt;/finalName&gt;" />
+
+    <copy todir="/home/dspace/${dspace_prefix}">
+      <fileset dir="${dspace_prefix}"/>
+    </copy>
+    <exec executable="chown">
+      <arg line="-R dspace.dspace /home/dspace/${dspace_prefix}"/>
+    </exec>
+  </target>
+
+  <target name="install">
+    <mkdir dir="/opt/dspace-${dspace_version}"/>
+    <exec executable="chown">
+      <arg line="-R dspace.dspace /opt/dspace-${dspace_version}"/>
+    </exec>
+    <exec executable="ln">
+      <arg line="-s /opt/dspace-${dspace_version} /opt/dspace"/>
+    </exec>
+    <exec executable="sudo">
+      <arg line="-u dspace createdb dspace"/>
+    </exec>
+    <replace file="/home/dspace/${dspace_prefix}/dspace/config/dspace.cfg" token="${default.dspace.dir}" value="/opt/dspace"/>
+    <exec executable="sudo" dir="/home/dspace/${dspace_prefix}">
+      <arg line="-u dspace /opt/maven/bin/mvn package"/>
+    </exec>
+    <exec executable="sudo" dir="/home/dspace/${dspace_prefix}/dspace/target/dspace-${dspace_version}-build">
+      <arg line="-u dspace ant fresh_install"/>
+    </exec>
+
+    <echo file="/tmp/dspace_admin.txt" message="${dspace_admin_email}&#x0A;" />
+    <echo file="/tmp/dspace_admin.txt" message="${dspace_admin_firstname}&#x0A;" append="yes"/>
+    <echo file="/tmp/dspace_admin.txt" message="${dspace_admin_lastname}&#x0A;" append="yes"/>
+    <echo file="/tmp/dspace_admin.txt" message="${dspace_admin_password}&#x0A;" append="yes"/>
+    <echo file="/tmp/dspace_admin.txt" message="${dspace_admin_password}&#x0A;" append="yes"/>
+    <echo file="/tmp/dspace_admin.txt" message="y&#x0A;" append="yes"/>
+
+    <exec executable="sh">
+      <arg line='-c "/opt/dspace/bin/dspace create-administrator &lt; /tmp/dspace_admin.txt"'/>
+    </exec>
+    <replace file="/usr/share/tomcat6/conf/server.xml" token="&lt;/Host&gt;" value='&lt;Context path="/jspui" docBase="/opt/dspace/webapps/jspui" debug="0" reloadable="true" cachingAllowed="false" allowLinking="true" /&gt;&#x0A;&lt;/Host&gt;' />
+    <replace file="/usr/share/tomcat6/conf/server.xml" token="&lt;/Host&gt;" value='      &lt;Context path="/oai" docBase="/opt/dspace/webapps/oai" debug="0" reloadable="true" cachingAllowed="false" allowLinking="true" /&gt;&#x0A;&lt;/Host&gt;' />
+    <exec executable="/etc/init.d/tomcat6">
+      <arg line="start"/>
+    </exec>
+    <exec executable="chkconfig">
+      <arg line="tomcat6 on"/>
+    </exec>
+  </target>
+
+  <target name="semantic-search">
+    <exec executable="/opt/maven/bin/mvn" dir="./${dspace_prefix}/dspace">
+      <arg line="clean package"/>
+    </exec>
+    <exec executable="ant" dir="./${dspace_prefix}/dspace/target/dspace-${dspace_version}-build">
+      <arg line="-Dconfig=./config/dspace.cfg init_configs"/>
+    </exec>
+    <exec executable="ant" dir="./${dspace_prefix}/dspace/target/dspace-${dspace_version}-build">
+      <arg line="-Dconfig=./config/dspace.cfg update"/>
+    </exec>
+
+    <echo message="#####&#x0A;#####&#x0A;Access to http://localhost:8080/jspui&#x0A;#####&#x0A;#####&#x0A;"/>
+   <echo message="#####&#x0A;#####&#x0A;Access to http://localhost:8080/jspui/semantic-search&#x0A;#####&#x0A;#####&#x0A;"/>
+  </target>
+
+</project>
