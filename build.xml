@@ -54,7 +54,7 @@
   </target>
 
   <target name="maven"> 
-    <get src="http://ftp.jaist.ac.jp/pub/apache/maven/binaries/${maven_prefix}.zip" dest="./${maven_prefix}.zip"/>
+    <get src="${maven_src}" dest="./${maven_prefix}.zip"/>
     <unzip src="${maven_prefix}.zip" dest="/opt"/>
     <exec executable="ln">
       <arg line="-s /opt/apache-maven-${maven_version} /opt/maven"/>
@@ -65,7 +65,7 @@
   </target>
 
   <target name="maven_proxy"> 
-    <get src="http://ftp.jaist.ac.jp/pub/apache/maven/binaries/${maven_prefix}.zip" dest="./${maven_prefix}.zip"/>
+    <get src="${maven_src}" dest="./${maven_prefix}.zip"/>
     <unzip src="${maven_prefix}.zip" dest="/opt"/>
     <exec executable="ln">
       <arg line="-s /opt/apache-maven-${maven_version} /opt/maven"/>
