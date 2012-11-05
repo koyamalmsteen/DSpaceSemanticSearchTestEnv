@@ -4,6 +4,14 @@
   <property environment="env"/>
   <property name="hostname" value="${env.HOSTNAME}"/>
 
+  <condition property="have.proxy.host">
+    <isset property="proxy.host"/>
+  </condition>
+
+  <condition property="have.proxy.port">
+    <isset property="proxy.port"/>
+  </condition>
+
   <target name="proxy">
     <setproxy proxyhost="${proxy.host}" proxyport="${proxy.port}" />
   </target>
