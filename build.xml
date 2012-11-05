@@ -4,18 +4,6 @@
   <property environment="env"/>
   <property name="hostname" value="${env.HOSTNAME}"/>
 
-  <condition property="have.proxy.host">
-    <isset property="proxy.host"/>
-  </condition>
-
-  <condition property="have.proxy.port">
-    <isset property="proxy.port"/>
-  </condition>
-
-  <target name="proxy">
-    <setproxy proxyhost="${proxy.host}" proxyport="${proxy.port}" />
-  </target>
-
   <target name="all" depends="clean, init, maven, download, install, semantic-search"/>
   <target name="all_proxy" depends="clean, init, maven_proxy, download"/>
 
@@ -86,9 +74,6 @@
  &lt;proxy&gt;&#x0A;      &lt;host&gt;${proxy.host}&lt;/host&gt;&#x0A;      &lt;port&gt;${proxy.port}&lt;/port&gt;&#x0A;    &lt;/proxy&gt;&#x0A;  &lt;/proxies&gt;" />
   </target>
 
-<!--
-  <target name="download" depends="proxy">
--->
   <target name="download">
     <get src="http://ftp.jaist.ac.jp/pub/sourceforge/d/ds/dspace/DSpace%20Stable/${dspace_version}/${dspace_prefix}.tar.bz2" dest="./${dspace_prefix}.tar.bz2"/>
     <bunzip2 src="${dspace_prefix}.tar.bz2"/>
