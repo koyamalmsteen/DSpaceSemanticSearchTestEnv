@@ -7,7 +7,7 @@
   <target name="all" depends="clean, init, maven, download, install, semantic-search"/>
   <target name="all_proxy" depends="clean, init, maven_proxy, download"/>
 
-  <target name="clean">
+  <target name="clean" description="Clean all.">
     <delete dir="${dspace_prefix}"/>
     <delete file="${dspace_prefix}.tar"/>
     <delete file="${dspace_prefix}.tar.bz2"/>
@@ -19,7 +19,7 @@
     <delete file="/opt/maven"/>
   </target>
 
-  <target name="init">
+  <target name="init" description="Initialize.">
     <exec executable="setenforce">
       <arg line="0"/>
     </exec>
@@ -50,7 +50,7 @@
     </exec>
   </target>
 
-  <target name="maven"> 
+  <target name="maven" description="Install maven."> 
     <get src="${maven_src}" dest="./${maven_prefix}.zip"/>
     <unzip src="${maven_prefix}.zip" dest="/opt"/>
     <exec executable="ln">
@@ -61,7 +61,7 @@
     </exec>
   </target>
 
-  <target name="maven_proxy"> 
+  <target name="maven_proxy" description="Install maven and set proxy for it."> 
     <get src="${maven_src}" dest="./${maven_prefix}.zip"/>
     <unzip src="${maven_prefix}.zip" dest="/opt"/>
     <exec executable="ln">
@@ -74,7 +74,7 @@
  &lt;proxy&gt;&#x0A;      &lt;host&gt;${proxy.host}&lt;/host&gt;&#x0A;      &lt;port&gt;${proxy.port}&lt;/port&gt;&#x0A;    &lt;/proxy&gt;&#x0A;  &lt;/proxies&gt;" />
   </target>
 
-  <target name="download">
+  <target name="download" description="Download.">
     <get src="http://ftp.jaist.ac.jp/pub/sourceforge/d/ds/dspace/DSpace%20Stable/${dspace_version}/${dspace_prefix}.tar.bz2" dest="./${dspace_prefix}.tar.bz2"/>
     <bunzip2 src="${dspace_prefix}.tar.bz2"/>
     <untar src="${dspace_prefix}.tar" dest="."/>
@@ -91,7 +91,7 @@
     </exec>
   </target>
 
-  <target name="install">
+  <target name="install" description="Install.">
     <mkdir dir="/opt/dspace-${dspace_version}"/>
     <exec executable="chown">
       <arg line="-R dspace.dspace /opt/dspace-${dspace_version}"/>
@@ -130,7 +130,7 @@
     </exec>
   </target>
 
-  <target name="semantic-search">
+  <target name="semantic-search" description="Install semantic search.">
     <exec executable="/opt/maven/bin/mvn" dir="./${dspace_prefix}/dspace">
       <arg line="clean package"/>
     </exec>
