@@ -4,8 +4,8 @@
   <property file="build.properties"/>
   <property name="hostname" value="${env.HOSTNAME}"/>
 
-  <target name="all" depends="clean, init, maven, download, install, semantic-search"/>
-  <target name="all_proxy" depends="clean, init, maven_proxy, download"/>
+  <target name="all" depends="clean, init, maven, download, install, semantic-search" description="Install all"/>
+  <target name="all_proxy" depends="clean, init, maven_proxy, download" description="Install all under proxy environment"/>
 
   <target name="clean" description="Clean all.">
     <delete dir="${dspace_prefix}"/>
